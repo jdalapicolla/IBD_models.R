@@ -1,273 +1,250 @@
-################ VALE INSTITUTE OF TECHNOLOGY ################
-################  LANDSCAPE GENOMICS TUTORIAL ################
-################ ISOLATION BY DISTANCE MODELS ################
-################    STEP 01: MANTEL TESTS     ################
+####################### VALE INSTITUTE OF TECHNOLOGY ##########################
 
-### Script prepared by Jeronymo Dalapicolla & Joyce Rodrigues do Prado.
+######################## LANDSCAPE GENOMICS TUTORIAL ##########################
+#####################   STEP 04: IBD BY MANTEL TEST   #########################
 
 
-###### PRE-ANALYSIS -----
-##1. INFORMATION
-#A. FOR ALL STEPS, PLEASE GO TO: https://github.com/jdalapicolla/
-#B. BASED ON PIPELINE FROM LANGEN: https://github.com/rojaff/LanGen_pipeline
-#C. THIS PIPELINE WAS DESIGNED IN UBUNTU 18.04 LTS, USING RSTUDIO 1.2.1335 AND R 3.6.3
 
 
-##2. INPUTS FOR THIS STEP:
-#A. THE FILE ".VCF" CLEANED AFTER FILTERING, STEP 1.
+### Script prepared by Jeronymo Dalapicolla, Carolina S. Carvalho, Luciana C. Resende-Moreira, Jamille C. Veiga, and Rodolfo Jaffé ###
+
+
+
+#### PRE-ANALYSIS #### 
+
+##1. INPUTS FOR THIS TUTORIAL ----
+#A. THE FILE ".VCF" CLEANED AFTER FILTERING AND WITH DELIMITED GENETIC CLUSTERS, STEP 2.
+
 #B. THE FILE "functions_LanGen.R" WITH FUNCTIONS DESIGNED FOR THIS PIPELINE IN THE WORKING DIRECTORY. YOU CAN DOWNLOAD IN  https://github.com/jdalapicolla/ OR https://github.com/rojaff/LanGen_pipeline
 
 
-##3. GOALS FOR THIS STEP:
-#A. ISOLATION-BY-DISTANCE ANALYSIS USING MANTEL TEST 
 
-##4. CHOOSE A FOLDER FOR RUNNING THE ANALYSES. THE FILES MUST BE THERE! 
+##2. GOALS FOR THIS STEP:
+#A. ISOLATION-BY-DISTANCE ANALYSIS USING MANTEL TEST
+
+
+
+##3. CHOOSE A FOLDER FOR RUNNING THE ANALYSES. THE FILES MUST BE THERE! 
 #A. IN RStudio GO TO  SESSION >> SET WORKING DIRECTORY >> CHOOSE DIRECTORY.. IN RStudio TOOL BAR OR USE THE SHORCUT CTRL+SHIFT+H
 
-##5. REMOVE ANY OBJECT OR FUNCTION IN THE ENVIRONMENT:
+
+##4. REMOVE ANY OBJECT OR FUNCTION IN THE ENVIRONMENT:
 rm(list=ls())
 
 
-##6. LOAD THE FILE "functions_LanGen.R" WITH FUNCTIONS TO BE USED ON THIS STEP. MORE INFORMATION ON FUNCTIONS IN NUMBER 2.
+
+
+##5. LOAD THE FILE "functions_LanGen.R" WITH FUNCTIONS TO BE USED ON THIS STEP. MORE INFORMATION ON FUNCTIONS IN NUMBER 2.
 source("functions_LanGen.R")
 
 
-##7. INSTALL AND LOAD THE PACKAGES
-#A. install the packages automatically
-if("remotes" %in% rownames(installed.packages()) == FALSE){install.packages("remotes")
-} else {print (paste0("'remotes' has already been installed in library"))}
-if("BiocManager" %in% rownames(installed.packages()) == FALSE){install.packages("BiocManager")
-} else {print (paste0("'BiocManager' has already been installed in library"))}
-if("pacman" %in% rownames(installed.packages()) == FALSE){install.packages("pacman")
-} else {print (paste0("'pacman' has already been installed in library"))}
-if("devtools" %in% rownames(installed.packages()) == FALSE){install.packages("devtools")
-} else {print (paste0("'devtools' has already been installed in library"))}
+##6. INSTALL AND LOAD THE PACKAGES ----
+#For r2vcftools do you need install VCFTools in you computer:https://vcftools.github.io/index.html
+#Basic Packages for installation:
+if (!require('remotes'))      install.packages('remotes');           library('remotes')
+if (!require('BiocManager'))  install.packages('BiocManager');       library('BiocManager')
+if (!require('pacman'))       install.packages('pacman');            library('pacman')
+if (!require('devtools'))     install.packages('devtools');          library('devtools')
 
-if("r2vcftools" %in% rownames(installed.packages()) == FALSE){remotes::install_github("nspope/r2vcftools")
-} else {print (paste0("'r2vcftools' has already been installed in library"))}
-if("geosphere" %in% rownames(installed.packages()) == FALSE){install.packages("geosphere")
-} else {print (paste0("'geosphere' has already been installed in library"))}
-if("raster" %in% rownames(installed.packages()) == FALSE){install.packages("raster")
-} else {print (paste0("'raster' has already been installed in library"))}
-if("rgdal" %in% rownames(installed.packages()) == FALSE){install.packages("rgdal")
-} else {print (paste0("'rgdal' has already been installed in library"))}
-if("ade4" %in% rownames(installed.packages()) == FALSE){install.packages("ade4")
-} else {print (paste0("'ade4' has already been installed in library"))}
-if("usedist" %in% rownames(installed.packages()) == FALSE){install.packages("usedist")
-} else {print (paste0("'usedist' has already been installed in library"))}
-if("reshape2" %in% rownames(installed.packages()) == FALSE){install.packages("reshape2")
-} else {print (paste0("'reshape2' has already been installed in library"))}
+#From Github or BiocManager:
+if (!require('r2vcftools'))   remotes::install_github("nspope/r2vcftools");          library('r2vcftools')
+if (!require('LEA'))          BiocManager::install("LEA");                           library('LEA')
 
-#B. load packages multiple packages use the package: 'pacman'. If the package is missing "p_load" will download it from CRAN. Using "" in the name of packages isn't mandatory.
-pacman::p_load(r2vcftools, usedist, raster, rgdal, geosphere, ade4, reshape2)
+#From CRAN R:
+if (!require('tidyverse'))    install.packages("tidyverse");         library('tidyverse') 
+if (!require('raster'))       install.packages("raster");            library('raster')
+if (!require('rgdal'))        install.packages("rgdal");             library('rgdal')
+if (!require('geosphere'))    install.packages("geosphere");         library('geosphere')
+if (!require('ggplot2'))      install.packages("ggplot2");           library('ggplot2') 
+if (!require('ade4'))         install.packages("ade4");              library('ade4')
+if (!require('reshape2'))     install.packages("reshape2");          library('reshape2') 
+if (!require('usedist'))      install.packages("usedist");           library('usedist')
+if (!require('car'))          install.packages("car");               library('car')
 
-##8. CREATE FOLDERS AND DIRECTORIES TO SAVE THE RESULTS:
-create_dir(c("./Results_IBD/Mantel_Tests"))
+#Load multiple packages using the package 'pacman'. If the package is missing "p_load" will download it from CRAN. "" in packages names is not mandatory.
+pacman::p_load(r2vcftools, usedist, raster, rgdal, geosphere, ade4, tidyverse, reshape2, ggplot2, car)
 
 
 
-##### 1. Loading Files ----- 
-###1.1. CHOOSE A NAME FOR THE PROJECT. MUST BE THE SAME ONE THAN OTHER STEPS:
+##7. CREATE FOLDERS AND DIRECTORIES TO SAVE THE RESULTS ----
+create_dir(c("./Results/Step04/Mantel_tests"))
+
+
+
+##8. CREATE A PATTERN FOR GRAPHIC FOLDERS S TO SAVE THE RESULTS ----
+theme_genetics = theme(axis.text=element_text(size=10, color="black"), #text in ticks axes
+                       axis.title=element_text(size=12, face="bold"), #label axes
+                       axis.line = element_line(colour = "black", size = 1, linetype = "solid"), #line on axes
+                       axis.ticks = element_line(colour = "black", size = 1, linetype = "solid"), #line on ticks
+                       axis.ticks.length = unit(.25, "cm"), #ticks length
+                       axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0)), #space between axis and label
+                       axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0)), #space between axis and label
+                       strip.text.x = element_text(size = 12, face="bold"), #facets label 
+                       panel.grid.major = element_blank(), # remove grids
+                       panel.grid.minor = element_blank(), # remove grids
+                       panel.background = element_blank(), # remove background
+                       panel.border = element_blank()) # remove borders)  
+
+
+
+#### ANALYSIS ---- 
+
+
+#### 1. LOAD FILES -----
 #A. Project name:
-project_name = "steerei"
+project_name = "pilocarpus"
 
+#B. Load neutral .vcf file with geographical information and genetic clusters ID, choosen in step 2. 
+snps_neutral = vcfLink(paste0("vcf/", project_name, "_filtered_neutral_clusters.vcf"), overwriteID=T)
+VCFsummary(snps_neutral) #277 individuals and 5268 SNPs.
+names(snps_neutral@meta) #verify col names in metafile
 
-###1.2. LOAD VCF FILE WITH GEOGRAPHICAL INFORMATION: 
-#A. Load neutral .vcf file with geographical information:
-snps_neutral = vcfLink(paste0("vcf/", project_name,"_filtered_neutral_LEA_DAPC_TESS.vcf"), overwriteID=T)
-VCFsummary(snps_neutral) #19 individuals and 13971 SNPs.
+#C. Number and name of cluster and method:
+optimal_K = 4
+name_clusters = c("A", "B", "C", "D")
 
-
-
-##### 2. Preparing Genetic Data -----
-###2.1. LOAD GENETIC DISTANCE:
-#A. I used genetic distance based on PCA distance with broken stick rule
-
-#B. Load distance file among all individuals calculate in STEP 4:
-#PCA with BS rule of variance explained
-PCA = read.csv(paste0("Results_Distance/PCA_Distance_BSR_IND_neutral_", project_name, ".csv"), row.names = 1)
-PCA[1:5, 1:5]
-
-
-###2.2. CREATE GENETIC 'DIST' OBJECTS FOR ALL SAMPLES: 
-#A. All samples:
-genDIST_all = as.dist(PCA)
-
-
-###2.3. CREATE GENETIC 'DIST' OBJECTS BY CLUSTERS:
-#A. Position of samples by populion by sNMF approach. Choose one method and change it on script:
-for (i in 1:length(unique(snps_neutral@meta$PopID_snmf))){
-  pop = which(snps_neutral@meta$PopID_snmf == i)
-  assign(paste0("pop_SNMF_", i), pop)
+#D.Position of samples by population/genetic clusters:
+for (i in name_clusters){
+  pop = which(snps_neutral@meta$POP_ID == i)
+  assign(paste0("pop_POSI_", i), pop)
 }
 
-#B. Subset By Pop 1:
-genDIST_pop1= dist_subset(genDIST_all, snps_neutral@sample_id[pop_SNMF_1])
+
+
+
+###2. GENETIC DISTANCE ----
+#We calculated genetic distance by individuals or clusters in step 03. Chose one genetic distance metric for Mantel.
+
+#A. Load distance files by individuals. We just have 4 populations, minimal 5 points for a regression.
+#PCA with 95% of variance explained
+PCA_95 = read.csv(paste0("Results/Step03/Distance/PCA_Distance_95Var_IND_mahalanobis_", project_name, ".csv"), row.names = 1)
+PCA_95[1:5, 1:5]
+
+
+#B. CREATE GENETIC 'DIST' OBJECTS FOR ALL SAMPLES:
+genDIST_all = as.dist(PCA_95)
+
+
+#C. CREATE GENETIC 'DIST' OBJECTS BY CLUSTERS:
+#Subset By Pop A:
+genDIST_popA= dist_subset(genDIST_all, snps_neutral@sample_id[pop_POSI_A])
 #verify dimensions
-length(genDIST_pop1)
+length(genDIST_popA)
 
-#C. Subset By Pop 2:
-genDIST_pop2= dist_subset(genDIST_all, snps_neutral@sample_id[pop_SNMF_2])
+#Subset By Pop B:
+genDIST_popB= dist_subset(genDIST_all, snps_neutral@sample_id[pop_POSI_B])
 #verify dimensions
-length(genDIST_pop2)
+length(genDIST_popB)
 
-#D. Subset By Pop 3:
-genDIST_pop3= dist_subset(genDIST_all, snps_neutral@sample_id[pop_SNMF_3])
+#Subset By Pop C:
+genDIST_popC= dist_subset(genDIST_all, snps_neutral@sample_id[pop_POSI_C])
 #verify dimensions
-length(genDIST_pop3)
+length(genDIST_popC)
+
+#Subset By Pop D:
+genDIST_popD= dist_subset(genDIST_all, snps_neutral@sample_id[pop_POSI_D])
+#verify dimensions
+length(genDIST_popD)
 
 
 
-##### 3. Preparing Geographical Data -----
-###3.1. LOAD GEOGRAPHIC INFORMATION:
-#A. Create a data frame with the geographical coordenates:
-coord_SN = snps_neutral@meta[,c(7,4:5)]
+###3. GEOGRAPHICAL DISTANCE ----
+#You can use any geographical distance matrix in here, topographical distance, distance along rivers, etc. Here we will calculate geographic distance, based on Euclidean distance. Package geoshere works with Lat/Long coordinates. Others package may need UTM coordinates. Be careful! 
+
+#A. Create a data frame with the geographical coordinates:
+names(snps_neutral@meta)
+coord_SN = snps_neutral@meta[,c(2,6:7)] # cols "sample_name", "Longitude", "Latitude" 
 head(coord_SN)
 
 #B. Set long and lat colunms
 coordinates(coord_SN) = coord_SN[,c(2,3)]
 projection(coord_SN) = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84")
 
-#C. Subset coord by populations:
-coord_POP1 = coord_SN[pop_SNMF_1,]
-coord_POP1
-coord_POP2 = coord_SN[pop_SNMF_2,]
-coord_POP2
-coord_POP3 = coord_SN[pop_SNMF_3,]
-coord_POP3
+#C. Subset coordinates by populations:
+coord_POPA = coord_SN[pop_POSI_A,]
+coord_POPA
+coord_POPB = coord_SN[pop_POSI_B,]
+coord_POPB
+coord_POPC = coord_SN[pop_POSI_C,]
+coord_POPC
+coord_POPD = coord_SN[pop_POSI_D,]
+coord_POPD
 
-
-###3.2. CREATE MATRICES FOR GEOGRAPHICAL DISTANCE:
-#by populations
-coord_files = list(coord_POP1, coord_POP2, coord_POP3)
+#D. Create matrices of geographical distance by pop:
+coord_files = list(coord_POPA, coord_POPB, coord_POPC, coord_POPD)
 
 for (l in 1:length(coord_files)){
   coord = coord_files[[l]]
   sdist_SN  = distm(coord, fun=distGeo)
+  rownames(sdist_SN) = coord$sample_name
+  colnames(sdist_SN) = coord$sample_name
   sdist_SN  = sdist_SN /1000
-  assign(paste0("sdist_POP", l), sdist_SN)
+  sdist_SN = as.dist(sdist_SN)
+  assign(paste0("geoDIST_pop", name_clusters[l]), sdist_SN)
 }
 
-# all samples
+#E. Create matrices of geographical distance for all individuals:
 sdist_SN  = distm(coord_SN, fun=distGeo)
 rownames(sdist_SN) = snps_neutral@sample_id
 colnames(sdist_SN) = snps_neutral@sample_id
-sdist_SN
 sdist_SN  = sdist_SN /1000
-#verify the matrix
-nrow(sdist_SN)
-ncol(sdist_SN)
-max(sdist_SN)
-dim(sdist_SN)
-class(sdist_SN)
-sdist_SN
-
-
-###3.3. CREATE 'DIST' OBJECTS FOR ALL SAMPLES AND BY CLUSTERS FROM MATRIXES: 
-#A. All samples:
 geoDIST_all = as.dist(sdist_SN)
 
-#B. By Pop:
-geoDIST_pop1 = as.dist(sdist_POP1)
-geoDIST_pop2 = as.dist(sdist_POP2)
-geoDIST_pop3 = as.dist(sdist_POP3)
 
-
-###3.4. VERIFY DIMENSION FOR THE 'DIST' OBJECTS:
+#F. Verify dimension for 'dist' objects:
 length(geoDIST_all)
 length(genDIST_all)
 
-length(geoDIST_pop1)
-length(genDIST_pop1)
+length(geoDIST_popA)
+length(genDIST_popA)
 
-length(geoDIST_pop2)
-length(genDIST_pop2)
+length(geoDIST_popB)
+length(genDIST_popB)
 
-length(geoDIST_pop3)
-length(genDIST_pop3)
+length(geoDIST_popC)
+length(genDIST_popC)
+
+length(geoDIST_popD)
+length(genDIST_popD)
 
 
 
-##### 4. Performing Mantel Tests -----
-###4.1. PERFORM MANTEL TESTS
+###4. MANTEL TESTS ----
 #A. By Species
-mantel_all = mantel.rtest(genDIST_all, log(geoDIST_all), 10000)
+mantel_all = mantel.rtest(genDIST_all, geoDIST_all, 10000)
 
 #B. By populations
-mantel_pop1 = mantel.rtest(genDIST_pop1, log(geoDIST_pop1), 10000)
-mantel_pop2 = mantel.rtest(genDIST_pop2, log(geoDIST_pop2), 10000)
-mantel_pop3 = mantel.rtest(genDIST_pop3, log(geoDIST_pop3), 10000)
+mantel_popA = mantel.rtest(genDIST_popA, geoDIST_popA, 10000)
+mantel_popB = mantel.rtest(genDIST_popB, geoDIST_popB, 10000)
+mantel_popC = mantel.rtest(genDIST_popC, geoDIST_popC, 10000)
+mantel_popD = mantel.rtest(genDIST_popD, geoDIST_popD, 10000)
 
 #C. Compile results and save as data.frame
-results_mantel = matrix(NA, 4, 2)
+results_mantel = matrix(NA, 5, 2)
 colnames(results_mantel) = c("r", "p-value")
-rownames(results_mantel) = c("All Samples", "Only POP1", "Only POP2", "Only POP3")
+rownames(results_mantel) = c("All Samples", "POPA", "POPB", "POPC", "POPD")
 results_mantel
 
 results_mantel[1,] = cbind (mantel_all$obs, mantel_all$pvalue)
-results_mantel[2,] = cbind (mantel_pop1$obs, mantel_pop1$pvalue)
-results_mantel[3,] = cbind (mantel_pop2$obs, mantel_pop2$pvalue)
-results_mantel[4,] = cbind (mantel_pop3$obs, mantel_pop3$pvalue)
+results_mantel[2,] = cbind (mantel_popA$obs, mantel_popA$pvalue)
+results_mantel[3,] = cbind (mantel_popB$obs, mantel_popB$pvalue)
+results_mantel[4,] = cbind (mantel_popC$obs, mantel_popC$pvalue)
+results_mantel[5,] = cbind (mantel_popD$obs, mantel_popD$pvalue)
 results_mantel
 
-write.csv(results_mantel, paste0("./Results_IBD/Mantel_Tests/novo_Mantel_Results_", project_name, ".csv"))
+#D. Save results
+write.csv(results_mantel, paste0("./Results/Step04/Mantel_tests/Mantel_Results_", project_name, ".csv"))
 
 
-#D. Save Plot as PDF by population
-#Prepare a single table with results
-POP1_10 = as.data.frame(cbind(as.vector(geoDIST_pop1), as.vector(genDIST_pop1)))
-POP1_10$POP = c(1)
-POP2_15 = as.data.frame(cbind(as.vector(geoDIST_pop2), as.vector(genDIST_pop2)))
-POP2_15$POP = c(2)
-POP3_28 = as.data.frame(cbind(as.vector(geoDIST_pop3), as.vector(genDIST_pop3)))
-POP3_28$POP = c(3)
-#verify
-df = rbind(POP1_10, POP2_15, POP3_28)
-head(df)
-
-#create the graph
-graph_mantel = ggplot(data=df) +
-  geom_point(mapping = aes(x=V1, y = V2, fill=factor(POP)), size=4, color = "black", shape=21) +
-  scale_fill_manual(values = c("black", "grey", "white")) +
-  geom_smooth(mapping = aes(x=V1, y = V2, group=POP, linetype = factor(POP)), method='lm', color = "black", size=1) +
-  scale_linetype_manual(values = c("1" = 1, "2" = 2, "3" = 4))+
-  theme_bw() +
-  labs(x = "Geographic Distances (Km)", y = "PC Distance (Broken Stick Rule)") +
-  guides(fill=guide_legend(title="Clusters"))
-
-#verify
-graph_mantel
-
-#save graph
-pdf(paste0("./Results_IBD/Mantel_Tests/Mantel_pcaBSR_", project_name,".pdf"))
-graph_mantel
-dev.off()
 
 
-#D. Save Plot as PDF for all individuals together
-#Preparing a single table
-df_ALL = as.data.frame(cbind(as.vector(geoDIST_all), as.vector(genDIST_all)))
-head(df_ALL)
-
-mantel_graph_all = ggplot(data=df_ALL) +
-  geom_point(mapping = aes(x=V1, y = V2), size=4, colour="black", pch=21) +
-  geom_smooth(mapping = aes(x=V1, y = V2), method='lm', color = "black", size=1) +
-  theme_bw() +
-  labs(x = "Geographic Distances (Km)", y = "PC Distance (Broken Stick Rule)") +
-  guides(fill=guide_legend(title=""))
-
-#verify
-mantel_graph_all
-
-pdf("./Results_IBD/Mantel_Tests/Mantel_Plot_All.pdf", onefile=FALSE)
-mantel_graph_all
-dev.off()
 
 
-###### 5. Permutation Tests by Population -----
-###5.1. MANTEL TEST WITH GEOGRAPHIC DISTANCE MATRIX - PERMUTATION
+
+
+#### 5. PERMUTATION TESTS BY POPULATION -----
 #A. Define populations positions to subset in a list
-populations = list(snps_neutral@sample_id[pop_TESS_1], snps_neutral@sample_id[pop_TESS_2], snps_neutral@sample_id[pop_TESS_3])
+populations = list(snps_neutral@sample_id[pop_POSI_A], snps_neutral@sample_id[pop_POSI_B], snps_neutral@sample_id[pop_POSI_C], snps_neutral@sample_id[pop_POSI_D])
 
 #B. Define number of populations
 pop_counter = length(populations)
@@ -286,75 +263,131 @@ for(i in 1:pop_counter) {
 
 mantel_perm
 colnames(mantel_perm) = c("r", "p-value")
-rownames(mantel_perm) = c("POP1", "POP2", "POP3")
+rownames(mantel_perm) = c("POP1", "POP2", "POP3", "POP4")
 mantel_perm
 
 #E. Save the results:
-write.csv(mantel_perm, paste0("./Results_IBD/Mantel_Tests/Mantel_Results_Permutation_", project_name, ".csv"))
+write.csv(mantel_perm, paste0("./Results/Step04/Mantel_tests/Mantel_Results_Permutation_", project_name, ".csv"))
 
 
 
 
-###### 6. ANCOVA for testing IBD slopes -----
-##6.1 PREPARING DATA FOR DIFFERENT POPULATIONS OR SPECIES:
-#A. Population 1
-sp1_gen = subset(melt(as.matrix(genDIST_pop1)), value!=0)
-sp1_geo = subset(melt(as.matrix(geoDIST_pop1)), value!=0)
-sp1_gen$geo = sp1_geo$value
-sp1_ancova = sp1_gen[duplicated(sp1_gen$value),]
-sp1_ancova = sp1_ancova[,-1]
-sp1_ancova$Var2 = c("STE_1")
-colnames(sp1_ancova) = c("SPE", "FST", "GEO")
-sp1_ancova
-
-#B. Population 2
-sp2_gen = subset(melt(as.matrix(genDIST_pop2)), value!=0)
-sp2_geo = subset(melt(as.matrix(geoDIST_pop2)), value!=0)
-sp2_gen$geo = sp2_geo$value
-sp2_ancova = sp2_gen[duplicated(sp2_gen$value),]
-sp2_ancova = sp2_ancova[,-1]
-sp2_ancova$Var2 = c("STE_2")
-colnames(sp2_ancova) = c("SPE", "FST", "GEO")
-sp2_ancova
-
-#C. Population 3
-sp3_gen = subset(melt(as.matrix(genDIST_pop3)), value!=0)
-sp3_geo = subset(melt(as.matrix(geoDIST_pop3)), value!=0)
-sp3_gen$geo = sp3_geo$value
-sp3_ancova = sp3_gen[duplicated(sp3_gen$value),]
-sp3_ancova = sp3_ancova[,-1]
-sp3_ancova$Var2 = c("STE_3")
-colnames(sp3_ancova) = c("SPE", "FST", "GEO")
-sp3_ancova
-
-ancova_pro = rbind(sp1_ancova, sp2_ancova, sp3_ancova)
-rownames(ancova_pro)= NULL
-
-#Genetic data is modeled as the dependent variable with SPE as the factor and GEO as the covariate
-mod1 = aov(FST~GEO*SPE, data=ancova_pro)
-summary(mod1)
-capture.output(summary(mod1),file="Model1_interaction.doc")
-#The summary of the results show a significant effect of GEO, SPE, and significant interaction. These results suggest that the slope of the regression between FST and GEO is different for all species.
-
-mod2 <- aov(FST~GEO+SPE, data=ancova_pro)
-summary(mod2)
-capture.output(summary(mod2),file="Model2_Nointeraction.doc")
-#The second model shows that SPE has a significant effect on the dependent variable which in this case can be interpreted as a significant difference in ‘intercepts’ between the regression lines of species. 
-
-#assess if removing the interaction significantly affects the fit of the model:
-anova(mod2,mod1)
-capture.output(anova(mod1,mod2),file="Model1_2_Comparison.doc")
-#The anova() command clearly shows that removing the interaction significantly affect the fit of the model (F=4.75, p=0.02). Therefore, we may conclude that the most parsimonious model is mod1 with more parameters.
-
-##ANCOVA
-#factor = species
-#independent variable = geography
-#dependent variable = fst
 
 
-#Differences in intercepts are interpreted as differences in magnitude
-#Differences in slopes are interpreted as differences in the rate of change. Lines should not be parallel. This means that growth is similar for both lines but one group is simply larger than the other. 
-#A difference in slopes is interpreted as differences in the rate of change. In allometric studies, this means that there is a significant change in growth rates among groups.
-#Slopes should be tested first, by testing for the interaction between the covariate and the factor. If slopes are significantly different between groups, then testing for different intercepts is somewhat inconsequential since it is very likely that the intercepts differ too 
+
+#### 6. PERFORMING ANCOVA AND TUKEY'S TESTS TO COMPARE SLOPES IN MANTEL TESTS -----
+#A. Convert distance matrices to data frames
+#set files in same order:
+ancova_datasets = c("A", "B", "C", "D", "SPE")
+gen_dist = list(genDIST_popA, genDIST_popB, genDIST_popC, genDIST_popD, genDIST_all) 
+geo_dist = list(geoDIST_popA, geoDIST_popB, geoDIST_popC, geoDIST_popD, geoDIST_all)
+
+for (k in 1:length(ancova_datasets)) {
+  mta = as.matrix(gen_dist[[k]])
+  mta[upper.tri(mta, diag = T)] = NA
+  mta = mta %>%
+    melt %>%
+    na.omit %>%
+    arrange(., Var1) %>%
+    setNames(c("X1", "X2","GenDist"))
+  
+  mtb = as.matrix(geo_dist[[k]])
+  mtb[upper.tri(mtb, diag = T)] = NA
+  mtb = mtb %>%
+    melt %>%
+    na.omit %>%
+    arrange(., Var1) %>%
+    setNames(c("X1", "X2","GeoDist"))
+  
+  df = as.data.frame(cbind(mta[,3], mtb[,3])) %>%
+    mutate(CLUSTER = ancova_datasets[k]) %>%
+    setNames(c("GEN", "GEO", "CLUSTER")) %>%
+    mutate(GEN = scale(GEN), GEO = scale(GEO))
+  
+  assign(paste0("ancova_pop_", ancova_datasets[k]), df)
+}
+
+df_ancova_clusters = rbind(ancova_pop_A, ancova_pop_B, ancova_pop_C, ancova_pop_D)
+head(df_ancova_clusters)
+tail(df_ancova_clusters)
+df_ancova_species = ancova_pop_SPE #only one species in our example
+head(df_ancova_species)
+
+
+#B. Performing the ANCOVA. You can replace clusters by species if you have two or more species.
+model1 = lm (GEN ~ GEO + CLUSTER + GEO:CLUSTER, data = df_ancova_clusters)
+Anova(model1, type="II")
+#Anova Table (Type II tests)
+
+#Response: GEN
+#             Sum Sq    Df F value   Pr(>F)    
+#GEO             0.1     1  0.1391   0.7091    
+#CLUSTER         0.0     3  0.0000   1.0000    
+#GEO:CLUSTER    57.6     3 19.2942 1.79e-12 ***
+#Residuals   11083.3 11137           
+
+### Interaction is significant, so the slope among groups
+### is different. 
+
+model2 = lm (GEN ~ GEO + CLUSTER, data = df_ancova_clusters)
+Anova(model2, type="II")
+#Anova Table (Type II tests)
+
+#Response: GEN
+#           Sum Sq    Df F value Pr(>F)
+#GEO           0.1     1  0.1385 0.7098
+#CLUSTER       0.0     3  0.0000 1.0000
+#Residuals 11140.9 11140   
+
+### The category variable (Species) is not significant,
+### so the intercepts among groups are not different
+
+
+#### 7. PLOTING MANTEL TESTS IN GRAPHS -----
+#By species
+plot_mantel_species = 
+ggplot(data=df_ancova_species) +
+  geom_point(mapping = aes(x=GEO, y = GEN, shape=factor(CLUSTER)), size=3, color ="black", alpha=0.5) +
+  scale_shape_manual(values=c(21))+
+  geom_smooth(mapping = aes(x=GEO, y = GEN, linetype = factor(CLUSTER)), method='lm', color = "red", size=1) +
+  theme_bw() +
+  theme_genetics +
+  theme(legend.text = element_text(size=10, face="italic"),
+        legend.title = element_text(size=12, face="bold")) +
+  xlab("Scaled Geographic Distances (Km)") + ylab("PC Distance (Broken Stick Rule)") +
+  labs(color  = "Species", linetype = "Species", shape = "Species")
+  
+
+plot_mantel_species
+
+pdf("./Results/Step04/Mantel_tests/Mantel_Plot_SPECIES.pdf", onefile=FALSE)
+plot_mantel_species
+dev.off()
+
+
+
+#By clusters:
+colors_pop = c('#ffff00','#ffc0cb', "#ff0000", '#0000ff') #color for the genetic cluster
+
+plot_mantel_clusters = 
+ggplot(data=df_ancova_clusters) +
+  aes(x=GEO, y = GEN, shape=factor(CLUSTER), linetype = factor(CLUSTER), color = factor(CLUSTER)) +
+  geom_point(size=3, alpha=0.5) +
+  geom_smooth(method='lm', size=1) +
+  scale_shape_manual(values=c(21,22,23,24))+
+  scale_color_manual(values=colors_pop) +
+  theme_bw() +
+  theme_genetics +
+  theme(legend.text = element_text(size=10, face="italic"),
+        legend.title = element_text(size=12, face="bold")) +
+  xlab("Scaled Geographic Distances (Km)") + ylab("PC Distance (Broken Stick Rule)") +
+  labs(color  = "Clusters", linetype = "Clusters", shape = "Clusters")
+
+plot_mantel_clusters
+
+pdf("./Results/Step04/Mantel_tests/Mantel_Plot_CLUSTERS.pdf", onefile=FALSE)
+plot_mantel_clusters
+dev.off()
+
 
 ##END
