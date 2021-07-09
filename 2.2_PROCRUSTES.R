@@ -1,187 +1,178 @@
-################ VALE INSTITUTE OF TECHNOLOGY ################
-################  LANDSCAPE GENOMICS TUTORIAL ################
-################ ISOLATION BY DISTANCE MODELS ################
-################      STEP 02: PROCRUSTES     ################
+####################### VALE INSTITUTE OF TECHNOLOGY ##########################
 
-### Script prepared by Jeronymo Dalapicolla & Joyce Rodrigues do Prado.
+######################## LANDSCAPE GENOMICS TUTORIAL ##########################
+#####################   STEP 05: IBD BY PROCRUSTES   #########################
 
 
-###### PRE-ANALYSIS -----
-##1. REFERENCES AND MORE INFORMATION:
-#A. FOR ALL STEPS, PLEASE GO TO: https://github.com/jdalapicolla/ OR https://github.com/rojaff/LanGen_pipeline
-#B. BASED ON PIPELINE FROM LANGEN: https://github.com/rojaff/LanGen_pipeline
-#C. THIS TUTORIAL IS ORGANIZED IN DIFFERENT "Steps" AND INSIDE EACH STEP THERE ARE "Actions" DENOTED BY NUMBERS (#1) AND INSIDE EACH ACTION COULD EXIST "Operations" INDICATED BY LETTES (#A.)
-#D. THIS PIPELINE WAS DESIGNED IN UBUNTU 18.04 LTS, USING RSTUDIO 1.2.1335 AND R 3.6.3
 
 
-##2. INPUTS FOR THIS STEP:
-#A. THE FILE ".VCF" CLEANED AFTER FILTERING, STEP 1.
+### Script prepared by Jeronymo Dalapicolla, Luciana C. Resende-Moreira, Joyce R. do Prado ###
+
+
+
+#### PRE-ANALYSIS #### 
+
+
+##1. INPUTS FOR THIS TUTORIAL ----
+#A. THE FILE ".VCF" CLEANED AFTER FILTERING AND WITH DELIMITED GENETIC CLUSTERS, STEP 2.
+
 #B. THE FILE "functions_LanGen.R" WITH FUNCTIONS DESIGNED FOR THIS PIPELINE IN THE WORKING DIRECTORY. YOU CAN DOWNLOAD IN  https://github.com/jdalapicolla/ OR https://github.com/rojaff/LanGen_pipeline
 
 
-##3. GOALS FOR THIS STEP:
-#A. ISOLATION-BY-DISTANCE ANALYSIS USING PROCRUSTES ANALYSIS 
+
+##2. GOALS FOR THIS STEP:
+#A. #A. ISOLATION-BY-DISTANCE ANALYSIS USING PROCRUSTES ANALYSES 
 
 
-##4. CHOOSE A FOLDER FOR RUNNING THE ANALYSES. THE FILES MUST BE THERE! 
+
+##3. CHOOSE A FOLDER FOR RUNNING THE ANALYSES. THE FILES MUST BE THERE! 
 #A. IN RStudio GO TO  SESSION >> SET WORKING DIRECTORY >> CHOOSE DIRECTORY.. IN RStudio TOOL BAR OR USE THE SHORCUT CTRL+SHIFT+H
 
 
-##5. REMOVE ANY OBJECT OR FUNCTION IN THE ENVIRONMENT:
+##4. REMOVE ANY OBJECT OR FUNCTION IN THE ENVIRONMENT:
 rm(list=ls())
 
 
-##6. LOAD THE FILE "functions_LanGen.R" WITH FUNCTIONS TO BE USED ON THIS STEP. MORE INFORMATION ON FUNCTIONS IN NUMBER 2.
+
+
+##5. LOAD THE FILE "functions_LanGen.R" WITH FUNCTIONS TO BE USED ON THIS STEP. MORE INFORMATION ON FUNCTIONS IN NUMBER 2.
 source("functions_LanGen.R")
 
 
-##7. INSTALL AND LOAD THE PACKAGES
-#A. install the packages automatically
-if("remotes" %in% rownames(installed.packages()) == FALSE){install.packages("remotes")
-} else {print (paste0("'remotes' has already been installed in library"))}
-if("BiocManager" %in% rownames(installed.packages()) == FALSE){install.packages("BiocManager")
-} else {print (paste0("'BiocManager' has already been installed in library"))}
-if("pacman" %in% rownames(installed.packages()) == FALSE){install.packages("pacman")
-} else {print (paste0("'pacman' has already been installed in library"))}
-if("devtools" %in% rownames(installed.packages()) == FALSE){install.packages("devtools")
-} else {print (paste0("'devtools' has already been installed in library"))}
+##6. INSTALL AND LOAD THE PACKAGES ----
+#For r2vcftools do you need install VCFTools in you computer:https://vcftools.github.io/index.html
+#Basic Packages for installation:
+if (!require('remotes'))      install.packages('remotes');           library('remotes')
+if (!require('BiocManager'))  install.packages('BiocManager');       library('BiocManager')
+if (!require('pacman'))       install.packages('pacman');            library('pacman')
+if (!require('devtools'))     install.packages('devtools');          library('devtools')
 
-if("r2vcftools" %in% rownames(installed.packages()) == FALSE){remotes::install_github("nspope/r2vcftools")
-} else {print (paste0("'r2vcftools' has already been installed in library"))}
-if("geosphere" %in% rownames(installed.packages()) == FALSE){install.packages("geosphere")
-} else {print (paste0("'geosphere' has already been installed in library"))}
-if("raster" %in% rownames(installed.packages()) == FALSE){install.packages("raster")
-} else {print (paste0("'raster' has already been installed in library"))}
-if("rgdal" %in% rownames(installed.packages()) == FALSE){install.packages("rgdal")
-} else {print (paste0("'rgdal' has already been installed in library"))}
-if("ade4" %in% rownames(installed.packages()) == FALSE){install.packages("ade4")
-} else {print (paste0("'ade4' has already been installed in library"))}
-if("usedist" %in% rownames(installed.packages()) == FALSE){install.packages("usedist")
-} else {print (paste0("'usedist' has already been installed in library"))}
+#From Github or BiocManager:
+if (!require('r2vcftools'))   remotes::install_github("nspope/r2vcftools");          library('r2vcftools')
 
-#B. load packages multiple packages use the package: 'pacman'. If the package is missing "p_load" will download it from CRAN. Using "" in the name of packages isn't mandatory.
-pacman::p_load(r2vcftools, usedist, raster, rgdal, geosphere, ade4)
-
-##8. CREATE FOLDERS AND DIRECTORIES TO SAVE THE RESULTS:
-create_dir(c("./Results_IBD/Procrustes_Analysis"))
-
-pacman::p_load(r2vcftools, vcfR, adegenet, raster, rgdal, vegan, GISTools, aspace, LEA)
+#From CRAN R:
+if (!require('tidyverse'))    install.packages("tidyverse");         library('tidyverse') 
+if (!require('raster'))       install.packages("raster");            library('raster')
+if (!require('rgdal'))        install.packages("rgdal");             library('rgdal')
+if (!require('vcfR'))         install.packages("vcfR");              library('vcfR')
+if (!require('vegan'))        install.packages("vegan");             library('vegan')
+if (!require('adegenet'))     install.packages("adegenet");          library('adegenet')
+if (!require('ggplot2'))      install.packages("ggplot2");           library('ggplot2') 
+if (!require('aspace'))       install.packages("aspace");            library('aspace') #R 3.5
+if (!require('reshape2'))     install.packages("reshape2");          library('reshape2') 
+if (!require('GISTools'))     install.packages("GISTools");          library('GISTools')
+if (!require('sp'))           install.packages("sp");                library('sp')
 
 
 
-###### 1. Loading Files -----
-###1.1. CHOOSE A NAME FOR THE PROJECT. MUST BE THE SAME ONE THAN OTHER STEPS:
+#Load multiple packages using the package 'pacman'. If the package is missing "p_load" will download it from CRAN. "" in packages names is not mandatory.
+pacman::p_load(r2vcftools, vcfR, adegenet, raster, rgdal, vegan, GISTools, tidyverse, reshape2, ggplot2, sp)
+
+
+
+##7. CREATE FOLDERS AND DIRECTORIES TO SAVE THE RESULTS ----
+create_dir(c("./Results/Step05/Procrustes"))
+
+
+
+##8. CREATE A PATTERN FOR GRAPHIC FOLDERS S TO SAVE THE RESULTS ----
+theme_genetics = theme(axis.text=element_text(size=10, color="black"), #text in ticks axes
+                       axis.title=element_text(size=12, face="bold"), #label axes
+                       axis.line = element_line(colour = "black", size = 1, linetype = "solid"), #line on axes
+                       axis.ticks = element_line(colour = "black", size = 1, linetype = "solid"), #line on ticks
+                       axis.ticks.length = unit(.25, "cm"), #ticks length
+                       axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0)), #space between axis and label
+                       axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0)), #space between axis and label
+                       strip.text.x = element_text(size = 12, face="bold"), #facets label 
+                       panel.grid.major = element_blank(), # remove grids
+                       panel.grid.minor = element_blank(), # remove grids
+                       panel.background = element_blank(), # remove background
+                       panel.border = element_blank()) # remove borders)  
+
+
+
+#### ANALYSIS ---- 
+
+
+#### 1. LOAD FILES -----
 #A. Project name:
-project_name = "steerei"
+project_name = "pilocarpus"
 
+#B. Load neutral .vcf file with geographical information:
+snps_neutral = vcfLink(paste0("vcf/", project_name, "_filtered_neutral_clusters.vcf"), overwriteID=T)
+VCFsummary(snps_neutral) #277 individuals and 5268 SNPs.
 
-###1.2 LOAD VCF FILE WITH GEOGRAPHICAL INFORMATION:
-#A. Load neutral .vcf file with geographical information:
-snps_neutral = vcfLink(paste0("vcf/", project_name, "_filtered_neutral_LEA_DAPC_TESS.vcf"), overwriteID=T)
-VCFsummary(snps_neutral) #19 individuals and 13971 SNPs.
+#C. Load the vcfR file for neutral SNPs
+vcf_neutral = read.vcfR( paste0("vcf/", project_name, "_filtered_neutral_clusters.vcf"), verbose = FALSE)
 
-#B. Create a data frame with the information on metafile
-df = as.data.frame(snps_neutral@meta)
-head(df)
-tail(df)
-
-
-#C. Create vectors with samples' position by population in TESS approach:
-for (i in 1:length(unique(df$PopID_snmf))){
-  pop = which(df$PopID_snmf == i)
-  assign(paste0("pop_SNMF_", i), pop)
-}
-
-
-#D. Load the vcfR file for neutral SNPs
-vcf_neutral = read.vcfR( paste0("vcf/", project_name, "_filtered_neutral_LEA_DAPC_TESS.vcf"), verbose = FALSE)
-
-#E. Convert to genind
+#D. Convert to genind
 genind_neutral = vcfR2genind(vcf_neutral)
 
+#E. Number and name of cluster and method:
+optimal_K = 4
+name_clusters = c("A", "B", "C", "D")
 
+#F.Position of samples by population/genetic clusters:
+for (i in name_clusters){
+  pop = which(snps_neutral@meta$POP_ID == i)
+  assign(paste0("pop_POSI_", i), pop)
+}
 
-###### 2. Load Maps for the Figures -----
-###2.1. DEFINE A EXTENSION FOR THE MAPS
-#A. Calculate the range for the geographical coordinates:
-long_extension = c(min(df$longitude), max(df$longitude))
-lat_extension = c(min(df$latitude), max(df$latitude))
-#verify the range of coordenates
+#G. Choose a extension for maps that cover all points. In this case:
+long_extension = c(min(snps_neutral@meta$Longitude), max(snps_neutral@meta$Longitude))
+lat_extension = c(min(snps_neutral@meta$Latitude), max(snps_neutral@meta$Latitude))
 long_extension
 lat_extension
+ext = raster::extent(-50.7, -49.7, -6.5, -5.8)
 
-#B. Plot points for samples 
-plot(snps_neutral@meta$longitude, snps_neutral@meta$latitude)
-
-#C. Choose a extension for maps that cover all points. In this case:
-ext = extent(-80, -60, -20, -0)
-
-#D. Define the axes from maps
-axis.x = c(-80, -60)
-axis.y = c(-20, 0)
-
-
-###2.2. LOAD RASTERS AND SHAPEFILES FOR MAPS AND CORRECT THE CRS
-#A. Load, crop and verify the CRS for all rasters:
-#landcover2
-landcover2 = stack("maps/rasters/NoSea_CL.tif") #multi band raster as satelite images
-landcover2 = crop(landcover2, ext)
-proj4string(landcover2)
+#H. Load, crop and verify the CRS for all rasters and shapefiles:
+#Landcover
+landcover = raster::stack("./Inputs/rasters/NoSea_CL.tif") #multi band raster as satelite images
+landcover = raster::crop(landcover, ext)
+proj4string(landcover)
 
 #landcover3
-#landcover3 = stack("maps/rasters/LC_Carajas_2018.tif")
-#landcover3 = crop(landcover3, ext)
-#proj4string(landcover3)
+landcover2 = raster::stack("./Inputs/rasters/LC_Carajas_2018.tif")
+landcover2 = raster::crop(landcover2, ext)
+proj4string(landcover2)
 
 #hillshade
-#hillshade = stack("maps/rasters/hillshade_carajas.tif")
-#hillshade = crop(hillshade, ext)
-#proj4string(hillshade)
+hillshade = raster::stack("./Inputs/rasters/hillshade_carajas.tif")
+hillshade = raster::crop(hillshade, ext)
+proj4string(hillshade)
 
 #if you need to fix the CRS base on a model, also a raster:
 #raster_to_fix = spTransform(raster_to_fix, proj4string(raster_model))
 
-#B. Load, crop and verify the CRS for all shapefiles:
 #cangas
-#cangas = shapefile("maps/shapefiles/Cangas.shp")
+cangas = shapefile("./Inputs/shapefiles/Cangas.shp")
 #if your shapefile is smaller than study area you do not need to crop. If you do it, the object will be NULL
 #cangas = crop(cangas, ext) 
-#crs(cangas)
-
+crs(cangas)
 #if you need to fix the CRS base on a model, also a raster:
-#cangas = spTransform(cangas, proj4string(landcover2))
-#crs(cangas)
-
-fr.states = shapefile("maps/shapefiles/Brazil_Estados.shp")
-fr.states = spTransform(fr.states, proj4string(landcover2))
-crs(fr.states)
-fr.states = crop(fr.states, ext)
-
-fr.countries = shapefile("maps/shapefiles/ne_10m_admin_0_countries.shp")
-fr.countries = spTransform(fr.countries, proj4string(landcover2))
-crs(fr.countries)
-fr.countries = crop(fr.countries, ext)
-
-fr.rivers = shapefile("maps/shapefiles/ne_10m_rivers_lake_centerlines.shp")
-fr.rivers = spTransform(fr.rivers, proj4string(landcover2))
-crs(fr.rivers)
-fr.rivers = crop(fr.rivers,ext)
+cangas = spTransform(cangas, proj4string(landcover2))
+crs(cangas)
 
 
-###### 3. Perform Procrustes Analyses ------
-###3.1. PERFORM A PROCRUSTES ANALYSIS TO VISUALIZATION OF ISOLATION BY DISTANCE
+
+
+
+
+
+
+#### 2. PERFORM PROCRUSTES ANALYSES -----
 #A. Perform a PCA
 #choose the two first PC for view the results in a two dimension graph. You can choose different numbers of PCs to represent the variance! See STEP 2, Action #5, Operation #D for options. With more PCs less correlation among genetic and geography and the PCA pattern of two-dimension figure is not recovered. Be careful!
 n_pcs = 2
 input_scaled = scaleGen (genind_neutral, center = TRUE, scale = TRUE, NA.method = "mean")
-pca_input = dudi.pca(lfmmformat_imp, center = TRUE, scannf = FALSE, nf = n_pcs)
+pca_input = dudi.pca(input_scaled, center = TRUE, scannf = FALSE, nf = n_pcs)
 
 #B. Lat and Long coordinates should be as matrix without row and cols names in decimal degrees 
-coord_mat = as.matrix(df[, 4:5])
+coord_mat = as.matrix(snps_neutral@meta[, 6:7])
 row.names(coord_mat) = NULL
 colnames(coord_mat) = NULL
 
-#C. Calculate the correlation between the matrixes! Scale is for scaling linearly configuration Y for maximum similarity!
+#C. Calculate the correlation between the matrices! Scale is for scaling linearly configuration Y for maximum similarity!
 test_pro_1 = protest (X=coord_mat, Y=pca_input, scale=T, symmetric=F, choices = c(1:n_pcs), permutations=10000)
 #view the results
 test_pro_1
@@ -193,107 +184,27 @@ proc = cbind.data.frame (test_pro_1$ss, test_pro_1$scale, test_pro_1$signif, tes
 colnames(proc) = c("Procrustes Sum of Squares (m12 squared)", "Correlation in a symmetric Procrustes rotation", "p-value", "Number of Permutation")
 rownames(proc) = project_name
 proc
-write.csv(proc,paste0("./Results_IBD/Procrustes_Analysis/novo_Procustes_statistics_", project_name, ".csv"))
-
-
-###3.2. SAVE RESULTS AS FIGURE:
-#A. Use this to get coordinates for the PCA value:
-test_pro_2 = procrustes (X=coord_mat, Y=pca_input, scale=T, symmetric=F, choices = c(1:n_pcs))
-
-#B. View the arrows
-plot (test_pro_2, main=NULL, ar.col='black', xlab='', ylab='')
-
-#C. Open pdf, choose the font letters, margins and axes.
-pdf(paste0("./Results_IBD/Procrustes_Analysis/novo_Map_TESS_Procrustes_Map_", project_name, ".pdf"), family="Helvetica", onefile = F)
-#set parameters
-plot.new()
-# Add margins
-par(oma=c(2,2,2,2))
-# Add axes
-plot.window(xlim= axis.x, ylim= axis.y)
-
-#B. Plot maps for the base
-plotRGB(landcover2, r = 1, g = 2, b = 3, ext= ext, alpha =120, stretch="lin", bty="7", axes = F, yaxs='r', xaxs='r') #stretch "lin" or "hist" are contrast and alpha (0 to 255) is brightness
-plot(fr.rivers, add=TRUE, axes = F, bg = FALSE, bty ="n", xaxt='n', ann=FALSE, yaxt='n', lty="solid", lwd=0.05, col="deepskyblue3")
-plot(fr.countries, add=TRUE, axes = F, bg = FALSE, bty ="n", xaxt='n', ann=FALSE, yaxt='n', lwd=0.3)
-plot(fr.states, add=TRUE, axes = F, bg = FALSE, bty ="n", xaxt='n', ann=FALSE, yaxt='n', lwd=0.3)
-
-#C. Plot long and lat axes:
-axis(1, at=seq(-80,-60, by=5),  cex.axis=1, pos = -20)
-axis(2, at=seq(-20, 0, by=5),  cex.axis=1, las=1, pos = -80)
-
-
-#F. Set population names and colors. SAME THAN STEP 2!
-
-sampling_localities = c("MADRE", "MADRE", "MADRE", "HEAD", "HEAD", "CENTRAL", "CENTRAL", "CENTRAL", "CENTRAL", "CENTRAL", "CENTRAL", "MADEIRA", "MADEIRA", "MADEIRA", "MADRE", "PURUS", "PURUS", "LOWER", "LOWER")
-
-CENTRAL = which(sampling_localities == "CENTRAL")
-UPPER = which(sampling_localities == "HEAD")
-LOWER = which(sampling_localities == "LOWER")
-MADEIRA = which(sampling_localities == "MADEIRA")
-MADRE = which(sampling_localities == "MADRE")
-PURUS = which(sampling_localities == "PURUS")
-
-loc = c("Central Juruá", "Upper Juruá", "Lower Juruá", "Madeira", "Madre de Dios", "Purus")
-
-col = c(rgb(240/255,228/255,66/255), rgb(213/255,94/255,0/255), rgb(0/255,114/255,178/255), rgb(128/255,0/255,0/255), rgb(86/255,180/255,233/255), rgb(204/255,121/255,167/255))
-
-
-
-#G. Plot arrows
-arrows(test_pro_2$Y[,1]+test_pro_2$translation[1,1], test_pro_2$Y[,2]+test_pro_2$translation[1,2], test_pro_2$X[,1]+test_pro_2$translation[1,1], test_pro_2$X[,2]+test_pro_2$translation[1,2], length=0.05, code = 0, cex=0.1, lwd=2) #code is the style of arrow, 0 = without head
-
-#H. Plot genetic position of population using DAPC groups.Add or remove lines according to your necessity.
-points(test_pro_2$Y[CENTRAL,1]+test_pro_2$translation[1,1],test_pro_2$Y[CENTRAL,2]+test_pro_2$translation[1,2], col = 'black', bg = col[1], cex = 3, pch=21) #POP1
-
-points(test_pro_2$Y[UPPER,1]+test_pro_2$translation[1,1],test_pro_2$Y[UPPER,2]+test_pro_2$translation[1,2], col = 'black', bg = col[2], cex = 3, pch=21) #POP1
-
-points(test_pro_2$Y[LOWER,1]+test_pro_2$translation[1,1],test_pro_2$Y[LOWER,2]+test_pro_2$translation[1,2], col = 'black', bg = col[3], cex = 3, pch=21) #POP1
-
-points(test_pro_2$Y[MADEIRA,1]+test_pro_2$translation[1,1],test_pro_2$Y[MADEIRA,2]+test_pro_2$translation[1,2], col = 'black', bg = col[4], cex = 3, pch=21) #POP1
-
-points(test_pro_2$Y[MADRE,1]+test_pro_2$translation[1,1],test_pro_2$Y[MADRE,2]+test_pro_2$translation[1,2], col = 'black', bg = col[5], cex = 3, pch=21) #POP1
-
-points(test_pro_2$Y[PURUS,1]+test_pro_2$translation[1,1],test_pro_2$Y[PURUS,2]+test_pro_2$translation[1,2], col = 'black', bg = col[6], cex = 3, pch=21) #POP1
-
-
-#I. Plot geographical position for the same population on previous operation #H
-
-points(test_pro_2$X[CENTRAL,1]+test_pro_2$translation[1,1],test_pro_2$X[CENTRAL,2]+test_pro_2$translation[1,2], col = 'black', bg = col[1], cex = 3, pch=24) #POP1
-points(test_pro_2$X[UPPER,1]+test_pro_2$translation[1,1],test_pro_2$X[UPPER,2]+test_pro_2$translation[1,2], col = 'black', bg = col[2], cex = 3, pch=24) #POP1
-
-points(test_pro_2$X[LOWER,1]+test_pro_2$translation[1,1],test_pro_2$X[LOWER,2]+test_pro_2$translation[1,2], col = 'black', bg = col[3], cex = 3, pch=24) #POP1
-
-points(test_pro_2$X[MADEIRA,1]+test_pro_2$translation[1,1],test_pro_2$X[MADEIRA,2]+test_pro_2$translation[1,2], col = 'black', bg = col[4], cex = 3, pch=24) #POP1
-
-points(test_pro_2$X[MADRE,1]+test_pro_2$translation[1,1],test_pro_2$X[MADRE,2]+test_pro_2$translation[1,2], col = 'black', bg = col[5], cex = 3, pch=24) #POP1
-
-points(test_pro_2$X[PURUS,1]+test_pro_2$translation[1,1],test_pro_2$X[PURUS,2]+test_pro_2$translation[1,2], col = 'black', bg = col[6], cex = 3, pch=24) #POP1
+write.csv(proc,paste0("./Results/Step05/Procrustes/Procustes_statistics_", project_name, ".csv"))
 
 
 
 
-#G. Plot the legend:
-legend(x=-79.5, y=-15, legend = loc, cex = 1, bty="o", bg = "white", box.col="black",  col = "black", pt.bg = col, pch= 22, pt.cex=1.5)
 
-#H. Plot the scale bar:
-scalebar(250, xy=c(-67,-19.5), type="line", lonlat = T, lwd=3, label = "250 Km", font=2)
-
-#I. Plot a north arrow:
-north.arrow(xb=-61, yb=-18, len=0.3, cex.lab=0.9, lab="N", col='black', font.sub=2)
-
-#M. Turn off pdf:
-dev.off()
+install.packages("aspace")
 
 
 
-###### 4. Permutation for Procrustes Analyses -----
-###4.1. PERFORM A PERMUTATION ANALYSES FOR PROCRUSTES RESULTS, DROPPING 1 POPULATION BY TURN:
+
+
+
+
+
+#### 3. PERMUTATION FOR PROCRUSTES ANALYSES -----
 #A. Define some variables: 
 #list for samples position by pops
-pops = list(pop_SNMF_1, pop_SNMF_2, pop_SNMF_3)
+pops = list(pop_POSI_A, pop_POSI_B, pop_POSI_C, pop_POSI_D)
 #vector with pop identifiers.
-pop_vec = c("Cluster1", "Cluster2", "Cluster3")
+pop_vec = name_clusters
 
 ##B. Perform a Procrustes analysis on the total dataset first.
 pro = protest(X=coord_mat,Y=pca_input,scale=T,symmetric=F,permutations=10000,choices = c(1:n_pcs))
@@ -334,8 +245,7 @@ for(m in 1:length(pops)) {
   rotation = c(rotation, asin_d(pro$rotation[2,1]))
 }
 
-##4.2. SAVE RESULTS AS A FIGURE: 
-#A. Set xlim and ylim for the figure:
+#E. Save results as figure
 #xlim is number of pops
 xlim=c(0, length(pops))
 #order difference values to use as ylim
@@ -343,35 +253,93 @@ diff_order = sort(difference) #-0.066 to 0.11
 diff_order
 ylim = c((diff_order[1]-0.05),(diff_order[length(pops)]+0.05))
 
-#B. Set populations names and colors:
-pop_vec = c("Cluster1", "Cluster2", "Cluster3")
-col_cluster = c("black", "grey", "white")
+#set populations names and colors:
+col_tess
+legend_tess
 
-#C. Plot the results
-pdf(paste0("./Results_IBD/Procrustes_Analysis/novo_Map_TESS_Procrustes_Permutation_", project_name, ".pdf"), family="Helvetica", onefile = F)
+#plot the results
+pdf(paste0("./Results/Step05/Procrustes/Procrustes_Permutation_", project_name, ".pdf"), onefile = F)
 #set margins and axes
 plot.new()
 par(oma=c(1,1,1,1))
 par(mar=c(2,2,1,0))
 plot.window(xlim=xlim, ylim=ylim)
 #plot the graph
-barplot (difference, ylim = ylim  , main = "Relative difference in t0", col=col_cluster)
-legend (x="topright", ncol=2, pch=21, bty='n', cex= 1.8, pt.cex=3,legend = pop_vec, col = "black", pt.bg = col_cluster)
-
-#D. Options to a graph with names and without colors
-#barplot (difference, names.arg = pop_vec, cex.names = 0.5)
-
-#E. Plot a abline on 0: 
+barplot (difference, ylim = ylim  , main = "Relative difference in t0", col=col)
+legend (x="topright", ncol=2, pch=21, bty='n', cex= 0.8, pt.cex=2,legend = legend_tess, col = "black", pt.bg = col_tess)
 abline(h=0)
-
-#F. Close the pdf
 dev.off()
 
 
-##4.3. SAVE RESULTS AS TABLE:
-#A. Create a data frame with all relevant information and saves it in a .csv file
+#F. Save results as table:
+#create a data frame with all relevant information and saves it in a .csv file
 test_data = data.frame(t0 = total, Angle = rotationallpops,POP = pop_vec, GEO = t_prime2, DIFF = difference, ROT_GEO = rotation2, P = signif, PCA = t_prime, ROT_PCA = rotation)
 
-write.csv(test_data, file=paste0("./Results_IBD/Procrustes_Analysis/novo_Map_TESS_Procrustes_Permutation_table_", project_name, ".csv"))
+write.csv(test_data, file=paste0("./Results/Step05/Procrustes/Procrustes_Permutation_table_", project_name, ".csv"))
+
+
+
+
+
+
+
+#### 4. SAVE A MAP WITH PROCRUSTES -----
+#A. Use this to get coordinates for the PCA value:
+test_pro_2 = procrustes (X=coord_mat, Y=pca_input, scale=T, symmetric=F, choices = c(1:n_pcs))
+
+#B. View the arrows
+plot (test_pro_2, main=NULL, ar.col='black', xlab='', ylab='')
+
+#C. Open pdf, choose the font letters, margins and axes.
+pdf(paste0("./Results_IBD/Procrustes_Analysis/Map_TESS_Procrustes_Map_", project_name, ".pdf"), family="Helvetica", onefile = F)
+#set parameters
+plot.new()
+# Add margins
+par(oma=c(2,2,2,2))
+# Add axes
+plot.window(xlim= axis.x, ylim= axis.y)
+
+#D. Plot maps for base
+plotRGB(hillshade, r = 1, g = 2, b = 3, interpolate = T , ext= ext, alpha = 255, bgalpha =0, stretch="lin", bty="7", axes = F, yaxs='r', xaxs='r') #stretch "lin" or "hist" are contrast and alpha (0 to 255) is brightness
+plotRGB(landcover2,r=1, g=2, b=3, interpolate=T, ext= ext, alpha =120, bgalpha =0, stretch="lin", bty="7", axes = F, yaxs='r', xaxs='r', add=T) #stretch "lin" or "hist" are contrast and alpha (0 to 255) is brightness
+plotRGB(landcover3,r=1, g=2, b=3, interpolate=T, ext= ext, alpha =100, bgalpha =0, stretch="lin", bty="7", axes = F, yaxs='r', xaxs='r', add=T) #stretch "lin" or "hist" are contrast and alpha (0 to 255) is brightness
+plot(cangas, add=TRUE, axes = F, bg = FALSE, bty ="n", xaxt='n', ann=FALSE, yaxt='n', lwd=1, col = "beige")
+
+#E. Plot long and lat axes:
+axis(1, at=seq(-50.7, -49.7, by=0.2),  cex.axis=1, pos=-6.5)
+axis(2, at=seq(-6.5, -5.8, by=0.2),  cex.axis=1, las=1, pos=-50.7)
+
+#F. Set population names and colors. SAME THAN STEP 2!
+col_tess= c("yellow", 'darkslategrey', 'red', 'blue')
+legend_tess = c("POP1", "POP2", "POP3", "POP4")
+
+#G. Plot arrows
+arrows(test_pro_2$Y[,1]+test_pro_2$translation[1,1], test_pro_2$Y[,2]+test_pro_2$translation[1,2], test_pro_2$X[,1]+test_pro_2$translation[1,1], test_pro_2$X[,2]+test_pro_2$translation[1,2], length=0.05, code = 0, cex=0.1, lwd=2) #code is the style of arrow, 0 = without head
+
+#H. Plot genetic position of population using DAPC groups.Add or remove lines according to your necessity.
+points(test_pro_2$Y[pop_TESS_1,1]+test_pro_2$translation[1,1],test_pro_2$Y[pop_TESS_1,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[1], cex = 1.5, pch=21) #POP1
+points(test_pro_2$Y[pop_TESS_2,1]+test_pro_2$translation[1,1],test_pro_2$Y[pop_TESS_2,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[2], cex = 1.5, pch=21) #POP2
+points(test_pro_2$Y[pop_TESS_3,1]+test_pro_2$translation[1,1],test_pro_2$Y[pop_TESS_3,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[3], cex = 1.5, pch=21) #POP3
+points(test_pro_2$Y[pop_TESS_4,1]+test_pro_2$translation[1,1],test_pro_2$Y[pop_TESS_4,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[4], cex = 1.5, pch=21) #POP4
+
+#I. Plot geographical position for the same population on previous operation #H
+points(test_pro_2$X[pop_TESS_1,1]+test_pro_2$translation[1,1],test_pro_2$X[pop_TESS_1,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[1], cex = 1.5, pch=24)  #POP1
+points(test_pro_2$X[pop_TESS_2,1]+test_pro_2$translation[1,1],test_pro_2$X[pop_TESS_2,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[2], cex = 1.5, pch=24)  #POP2
+points(test_pro_2$X[pop_TESS_3,1]+test_pro_2$translation[1,1],test_pro_2$X[pop_TESS_3,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[3], cex = 1.5, pch=24)  #POP3
+points(test_pro_2$X[pop_TESS_4,1]+test_pro_2$translation[1,1],test_pro_2$X[pop_TESS_4,2]+test_pro_2$translation[1,2], col = 'black', bg = col_tess[4], cex = 1.5, pch=24)  #POP4
+
+#J. Plot the legend:
+legend(x=-49.85, y=-5.85, legend = legend_tess, cex = 0.8, bty="o", bg = "white", box.col="black",  col = "black", pt.bg = col_tess, pch= 22, pt.cex=1.5)
+
+#K. Plot the scale bar:
+scalebar(10, xy=c(-50.65,-6.45), type="bar", lonlat = T, below = "Km", label = c(0,5,10), adj=c(0,-1.5), cex = 0.7)
+
+#L. Plot a north arrow:
+north.arrow(xb=-49.8, yb=-6.45, len=0.015, cex.lab=0.8, lab="N", col='black', font.sub=1)
+
+#M. Turn off pdf:
+dev.off()
+
+
 
 ##END
